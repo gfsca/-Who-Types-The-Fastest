@@ -5,10 +5,13 @@ jmp 0x0000:start
 ;utilizar o método de shift left (hexadecimal)
 ;e somar o offset no adress base, para rodarmos o kernel.
 
-loading db 'Loading structures for the kernel', 0
-protectedMode db 'Setting up protected mode', 0
-loadingKernel db 'Loading kernel in memory', 0
-runningKernel db 'Running kernel', 0
+loading db 'Loading structures for the kernel...', 0
+protectedMode db 'Setting up protected mode...', 0
+loadingKernel db 'Loading kernel in memory...', 0
+runningKernel db 'Running kernel...', 0
+challenge db 'Press Enter if you think you type fast enough.'
+;are you ready for the biggest contest of your life?
+;PRESS Y/N
 
 start:
     xor ax, ax
@@ -21,30 +24,65 @@ start:
 
     mov ah,0 
 	mov al, 12h
-	int 10h
+	int 10h ;setando modo gráfico
 
+    
+	mov ah,0xb
+	mov bh,0
+	mov bl, 0 
+	int 10h ; colocando o fundo como preto
+
+    ;parte pra printar as mensagens que quisermos
+
+    mov si, loading
+    call print_string
+
+
+    mov si, protectedMode
+    call print_string
+
+
+    mov si, loadingKernel
+    call print_string
+
+
+    mov si, runningKernel
+    call print_string
+
+    mov si, challenge
+    call print_string
+    
+
+    reset:
+        mov ah, 00h ;reseta o controlador de disco
+        mov dl, 0   ;floppy disk
+        int 13h
+
+        jc reset    ;se o acesso falhar, tenta novamente
+
+        jmp load
 
     load_kernel:
-    mov ah, 02h ;lê um setor do disco
-    mov al, 20  ;quantidade de setores ocupados pelo kernel
-    mov ch, 0   ;track 0
-    mov cl, 3   ;setor 3
-    mov dh, 0   ;head 0
-    mov dl, 0   ;drive 0
-    int 13h
+        mov ah, 02h ;le o setor do disco
+        mov al, 12  ;porção de setores ocupados pelo kernel.asm
+        mov ch, 0   ;track 0
+        mov cl, 2   ;setor 2
+        mov dh, 0   ;head 0
+        mov dl, 0   ;drive 0
+        int 13h
 
-    jc load     ;se o acesso falhar, tenta novamente
+        jc load     ;se o acesso falhar, tenta novamente
 
-    jmp 0x7e00  ;pula para o setor de endereco 0x7e00 (start do boot2)
+        jmp 0x7e00  ;pula para o setor de endereco 0x7e00, que é o kernel
 
     print_string:  
         lodsb ;carrega o que tá em SI
         cmp al, 0 ;vê se o que foi carregado em al é igual a /0
-        je endString ;se for, n tem mais o que printar
+        je end_string ;se for, n tem mais o que printar
 
         mov ah, 0xe ;printa o caracter
         int 10h	
         
         jmp print_string 
-    end_string:
-    ret
+        end_string:
+            ret

@@ -28,7 +28,7 @@ teste db 'o rato roeu a roupa do rei de roma', 0
 teclado:        ; funcao para ler o input do teclado
     lodsb   ; carregando o que tá sendo apontado em si para al
     cmp al, 0
-    je done
+    je Menu
 
     mov cl , al ;guardando, pra não sobrescrever o que foi puxado da memória
 
@@ -217,6 +217,12 @@ Menu:
         jne selecao
 ;Arthur       
 play:
+
+    mov ah, 0bh ; chamada pra limpar a tela 
+    mov bh, 0
+    mov bl, 1
+    int 10h 
+    
     mov ah, 02h ; setar o cursor
     mov bh, 0   ; pagina
     mov dh, 5   ; valor y
@@ -362,7 +368,7 @@ credito:
     mov si, creditos4
     call printString
 
-ESCcreditos
+ESCcreditos:
 	;Para receber o caractere
     mov ah, 0
     int 16h

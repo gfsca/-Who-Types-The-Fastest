@@ -9,7 +9,7 @@ creditos    db 'Credits (3)', 0
 
 ;instrucoes
 instrucao1 db 'Are you the fastest typer alive?', 0
-instrucao2 db 'Type as many words as you can in 60 seconds', 0
+instrucao2 db 'Type as many words as you can in 30 seconds', 0
 instrucao3 db 'For each wrong letter you lose points', 0
 instrucao4 db 'When the time runs out you will have your score', 0
 instrucao5 db 'Press Esc to return', 0
@@ -23,12 +23,107 @@ creditos4 db 'Press Esc to return', 0
 ;parte do jogo
 teste db 'o rato roeu a roupa do rei de roma', 0
 
+;score
+score1 db 'Your score is ', 0
+score2 db 'WOW, you really are fast', 0
+score3 db 'You are as fast as a slug, try again!', 0
+
+points dw 150
 ;funções do jogo
+
+printString:
+    lodsb
+    mov ah, 0xe
+    mov bh, 0
+    mov bl, 0xf
+    int 10h
+
+    cmp al, 0
+    jne printString
+    ret
+
+
+
+setup_div:
+    xor ax, ax
+    xor dx, dx
+    mov ax, cx
+    ret
+
+;; Put the integer in cx and we use all the 4 registers
+;; Must store in si the top of the stack
+int_to_char:
+    call setup_div
+    ;; Store the return value
+    pop cx
+    mov bx, 10
+    convert_int_to_char:
+        div bx
+        add dx, '0'
+        push dx
+        je end_convert_int_to_char
+        jmp convert_int_to_char
+    end_convert_int_to_char:
+        ret
+
+print_score:
+    mov cx, word [points]
+    mov bp, sp
+    call int_to_char
+
+    mov bh, 0
+    mov bh, 0
+    mov dl, 0
+    int 10h
+    loop_to_print:
+        cmp bp, sp
+        je end_loop_to_print
+        pop ax
+        mov ah, 0
+        int 10h
+        jmp loop_to_print
+    end_loop_to_print:
+    ret
+
+; print_score:
+;     mov ax, word [points]
+    
+;     mov bx, 10
+;     push '*'
+
+;     loop_print_score:
+;         mov dx, 0
+;         div bx
+;         add dx, '0'
+;         push dx
+
+;         cmp ax, 0
+;         je end_loop_print_score
+;         jmp loop_print_score
+;     end_loop_print_score:
+
+;     mov ah, 1
+;     mov al, 0
+;     mov bh, 0
+;     mov bl, 60
+;     int 16h
+
+;     loop_print_chars:
+;         pop ax
+;         cmp ax, '*'
+;         je end_loop_print_chars
+;         mov ah, 0
+;         int 16h
+;         jmp loop_print_chars
+;     end_loop_print_chars:
+
+;     jmp flag_volta
+
 
 teclado:        ; funcao para ler o input do teclado
     lodsb   ; carregando o que tá sendo apontado em si para al
     cmp al, 0
-    je Menu
+    je score
 
     mov cl , al ;guardando, pra não sobrescrever o que foi puxado da memória
 
@@ -123,18 +218,6 @@ backspace:
         jmp teclado
 
 ;fim das funçoes do jogo
-;Funçao para printar strings
-printString:
-		lodsb
-		mov ah, 0xe
-		mov bh, 0
-		mov bl, 0xf
-		int 10h
-
-		cmp al, 0
-		jne printString
-        ret
-
 ;Inicio do programa
 start:
     ;Zerando os registradores
@@ -172,7 +255,7 @@ Menu:
     mov ah, 02h  ;Setando o cursor
 	mov bh, 0    ;Pagina 0
 	mov dh, 15   ;Linha
-	mov dl, 38   ;Coluna
+	mov dl, 36   ;Coluna
 	int 10h
     mov si, jogar
     call printString
@@ -181,7 +264,7 @@ Menu:
     mov ah, 02h  ;Setando o cursor
 	mov bh, 0    ;Pagina 0
 	mov dh, 20   ;Linha
-	mov dl, 34   ;Coluna
+	mov dl, 32   ;Coluna
 	int 10h
     mov si, instrucoes
     call printString
@@ -190,7 +273,7 @@ Menu:
     mov ah, 02h  ;Setando o cursor
 	mov bh, 0    ;Pagina 0
 	mov dh, 25   ;Linha
-	mov dl, 36   ;Coluna
+	mov dl, 34   ;Coluna
 	int 10h
     mov si, creditos
     call printString
@@ -218,6 +301,17 @@ Menu:
 ;Arthur       
 play:
 
+    ;Carregando o video para limpar a tela
+    mov ah, 0
+    mov al,12h
+    int 10h
+
+    ;Mudando a cor do background para azul escuro
+    mov ah, 0bh
+    mov bh, 0
+    mov bl, 1
+    int 10h 
+
     mov ah, 0bh ; chamada pra limpar a tela 
     mov bh, 0
     mov bl, 1
@@ -225,13 +319,26 @@ play:
     
     mov ah, 02h ; setar o cursor
     mov bh, 0   ; pagina
-    mov dh, 5   ; valor y
+    mov dh, 3   ; valor y
     mov dl, 20  ; valor x
     int 10h
 
-    mov si, teste 
+    mov si, teste
+    call printString
+
+
+    mov ah, 02h ; setar o cursor
+    mov bh, 0   ; pagina
+    mov dh, 13   ; valor y
+    mov dl, 19  ; valor x
+    int 10h
+
+    mov si, teste
+
         
     jmp teclado
+
+
 
 ;Caso seja selecionado "Instruction (2)"
 instrucao:
@@ -377,6 +484,69 @@ ESCcreditos:
     cmp al, 27
 	je Menu
 	jne ESCcreditos
+
+score:
+   ;Carregando o video para limpar a tela
+    mov ah, 0
+    mov al,12h
+    int 10h
+
+    ;Mudando a cor do background para azul escuro
+    mov ah, 0bh
+    mov bh, 0
+    mov bl, 1
+    int 10h 
+
+    ;Colocando o Titulo
+    mov ah, 02h  ;Setando o cursor
+    mov bh, 0    ;Pagina 0
+    mov dh, 3    ;Linha
+    mov dl, 33   ;Coluna
+    int 10h
+    mov si, score1
+    call printString
+
+    call print_score
+
+
+    flag_volta:
+        cmp word [points], 100
+        jle arthur
+        jg fonseca
+
+
+
+arthur:
+    ;Colocando o score
+    mov ah, 02h  ;Setando o cursor
+    mov bh, 0    ;Pagina 0
+    mov dh, 12    ;Linha
+    mov dl, 15   ;Coluna
+    int 10h
+    mov si, score2
+    call printString
+jmp ESCscore
+
+fonseca:
+    ;Colocando o score
+    mov ah, 02h  ;Setando o cursor
+    mov bh, 0    ;Pagina 0
+    mov dh, 12    ;Linha
+    mov dl, 15   ;Coluna
+    int 10h
+    mov si, score3
+    call printString
+
+ESCscore:    
+    ;Para receber o caractere
+    mov ah, 0
+    int 16h
+
+    ;Apos receber 'Esc' volta pro menu
+    cmp al, 27
+    je Menu
+    jne ESCscore
+
 
 done:
     jmp $

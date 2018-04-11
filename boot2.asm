@@ -4,21 +4,11 @@ jmp 0x0000:start
 ;como o endereço dado para o kernel é 0x7e00, devemos
 ;utilizar o método de shift left (hexadecimal)
 ;e somar o offset no adress base, para rodarmos o kernel.
-
 loading db 'Loading structures for the kernel...', 0
 protectedMode db 'Setting up protected mode...', 0
 loadingKernel db 'Loading kernel in memory...', 0
 runningKernel db 'Running kernel...', 0
-challenge db 'Press Enter if you think you type fast enough.'
-
-enter_input:
-    mov ah, 0   ; prepara o ah para a chamada do teclado
-    int 16h     ; interrupcao para ler o caractere e armazena-lo em al
-
-    cmp al, 0xA
-
-    je reset
-    jne enter_input
+challenge db 'Press Y (Yes) if you think you type fast enough.', 0
 
 print_string:
 	lodsb
@@ -26,7 +16,7 @@ print_string:
 	je end
 
 	mov ah, 0eh
-	mov bl, 0x2
+	mov bl, 15
 	int 10h
 
 	mov dx, 0
@@ -86,7 +76,16 @@ start:
     mov si, challenge
     call print_string
 
-    jmp enter_input
+enter_:
+    mov ah, 0   ; prepara o ah para a chamada do teclado
+    int 16h     ; interrupcao para ler o caractere e armazena-lo em al
+
+    cmp al, 121 ; 'y'
+    je reset
+    
+    cmp al, 89  ; 'Y'
+    je reset
+    jne enter_
         
 
     reset:
@@ -129,5 +128,5 @@ start:
       ;      ret
 
 
-    times 510-($-$$) db 0
+    times 510-($-$$) db 0 ;512 bytes
     dw 0xaa55	

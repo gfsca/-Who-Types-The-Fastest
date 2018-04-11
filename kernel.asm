@@ -4,13 +4,13 @@ jmp 0x0000:start
 teste db 'o rato roeu a roupa do rei de roma', 0
 
 teclado:        ; funcao para ler o input do teclado
-    lodsb
+    cld
+    lodsb   ; carregando o que tá sendo apontado em si para al
     cmp al, 0
     je done
 
-    cld
+    mov cl , al ;guardando, pra não sobrescrever o que foi puxado da memória
 
-    mov cl , al
     mov ah, 0   ; prepara o ah para a chamada do teclado
     int 16h     ; interrupcao para ler o caractere e armazena-lo em al
     
@@ -23,7 +23,7 @@ teclado:        ; funcao para ler o input do teclado
     jne caracter_vermelho
     
 seta_cursor:
-    cmp dl, 60
+    cmp dl, 80
     je .controle_direita
     mov ah, 02h ; setar o cursor
     mov bh, 0   ; pagina
@@ -58,7 +58,11 @@ backspace:
         mov bl, 15  ; seta a cor do caractere, nesse caso, branco
         int 10h
 
+        mov ah, 02h ; setar o cursor
+        mov bh, 0   ; pagina
+        int 10h
         dec dl
+
         std
         lodsb
 
@@ -123,5 +127,3 @@ start:
 
     done:
     jmp $
-    times 510 - ($ - $$) db 0
-    dw 0xaa55

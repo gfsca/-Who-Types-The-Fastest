@@ -1,9 +1,20 @@
-org 0x7e00
+org 0x7c00
 jmp 0x0000:start
 
-teste db 'o rato roeu a roupa do rei de roma', 0
+teste db 'o rato roeu a roupa do rei de roma. Fonseca eh uma otima pessoa e toscano eh um coco no fort', 0
+points db 0
 
-teclado:        ; funcao para ler o input do teclado
+teclado:        ; funcao para ler o input do teclado na pilha
+    push dx     ; salva o que tem em dh e dl
+
+    mov ah, 02h ; escolhe a funcao de ler o tempo do sistema
+    int 1aH     ; interrupcao que lida com o tempo do sistema
+
+    cmp dh, 30
+    jge done
+    
+    pop dx      ; retira da pilha os 2 bytes e salva-os em dx
+
     lodsb   ; carregando o que tá sendo apontado em si para al
     cmp al, 0
     je done
@@ -22,34 +33,39 @@ teclado:        ; funcao para ler o input do teclado
     jne caracter_vermelho
     
 seta_cursor:
-    cmp dl, 80
-    je .controle_direita
+    cmp dl, 70
+    je controle_direita
+    retorno_c_d:
     mov ah, 02h ; setar o cursor
     mov bh, 0   ; pagina
     inc dl
     int 10h
-    ret
+    cmp bl, 2
+    je aqui_vd
+    jmp aqui_vm
 
-    .controle_direita:
+    controle_direita:
     mov ah, 02h ; setar o cursor
     mov bh, 0   ; pagina
     mov dl, 20
     inc dh
     int 10h
-    ret
+    jmp retorno_c_d
 
 printa_char:
     mov cx, 1
     mov ah, 09h ; codigo para printar caractere apenas onde esta o cursor
     mov bh, 0   ; seta a pagina
     int 10h
-    ret
+    cmp bl, 2
+    je  retorno_pChar
+    jmp retorno_pChar2
 
 backspace:
     cmp dl, 20
-    je .controle_esquerda
+    je controle_esquerda
 
-    .printa_espaco:
+    printa_espaco:
         mov al, ' '
         mov cx, 1
         mov ah, 09h ; codigo para printar caractere apenas onde esta o cursor
@@ -67,7 +83,7 @@ backspace:
         
         jmp teclado
 
-    .controle_esquerda:
+    controle_esquerda:
         cmp dh, 5
         je teclado
 
@@ -89,18 +105,33 @@ backspace:
         jmp teclado
 
     caracter_verde:
-        mov bl, 2  ; seta a cor do caractere, nesse caso, branco
-        call seta_cursor
-        call printa_char
+        mov bl, 2  ; seta a cor do caractere, nesse caso, verde
+        jmp seta_cursor
+        aqui_vd:
+        jmp printa_char
+        retorno_pChar:
+        inc byte [points]
         jmp teclado
 
     caracter_vermelho:
-        mov bl, 4  ; seta a cor do caractere, nesse caso, branco
-        call seta_cursor
-        call printa_char
+        mov bl, 4  ; seta a cor do caractere, nesse caso, vermelho
+        jmp seta_cursor
+        aqui_vm:
+        jmp printa_char
+        retorno_pChar2:
+        cmp byte [points], 0
+        je teclado
+        dec byte [points]
         jmp teclado
 
 start:
+    mov ah, 03h ; escolhe a funcao de ler o tempo do sistema
+    mov ch, 0   ; horas
+    mov cl, 0   ; minutos
+    mov dh, 0   ; segundos
+    mov dl, 1   ; seta o modo entre dia e noite do relogio do sistema(1 para dia)
+    int 1aH     ; interrupcao que lida com o tempo do sistema
+    
     xor ax, ax
     mov ds, ax
     mov es, ax
@@ -126,3 +157,5 @@ start:
 
     done:
     jmp $
+    times 510-($-$$) db 0 ;512 bytes
+    dw 0xaa55             ;assinatura

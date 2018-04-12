@@ -79,10 +79,18 @@ printString:
     ret
 
 print_score:
-    mov ax, word [points]
+   
     push 12 ;pra saber quando parar de dar pop
     mov cl, 10 ; setar 10 como divisor
 
+    mov ah, 02h ; setar o cursor
+    mov bh, 0   ; pagina
+    mov dl, 38
+    mov dh, 5
+    int 10h
+
+
+    mov ax, word [points]
     push_stack:
     div cl ; al = quociente ah = resto
     add ah, 48 ; transforma em caracter
@@ -92,27 +100,16 @@ print_score:
     je pop_stack
     jmp push_stack
 
-    mov ah, 02h ; setar o cursor
-    mov bh, 0   ; pagina
-    mov dl, 20
-    mov dh, 20
-    int 10h
-
     pop_stack:
     pop ax
     cmp ax, 12
     je flag_volta
 	mov al, ah
 
-    mov cx, 1
-    mov bh, 0   ; seta a pagina
-    int 10h
-    mov ah, 02h ; setar o cursor
+    mov ah, 0eh ; setar o cursor
     mov bh, 0   ; pagina
-    inc dh
     int 10h
 
-    cmp bl, 2
     jmp pop_stack
 
 

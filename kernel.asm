@@ -21,14 +21,14 @@ creditos3 db 'Gabriel Toscano <gtbo>', 0
 creditos4 db 'Press Esc to return', 0
 
 ;parte do jogo
-teste db 'o rato roeu a roupa do rei de roma', 0
+teste db 'o rato roeu a roupa do rei de roma. Fonseca eh uma otima pessoa e toscano eh um coco no fort', 0
+points dw 0
 
 ;score
 score1 db 'Your score is ', 0
 score2 db 'WOW, you really are fast', 0
 score3 db 'You are as fast as a slug, try again!', 0
 
-points dw 150
 ;funções do jogo
 
 printString:
@@ -42,85 +42,44 @@ printString:
     jne printString
     ret
 
-
-
-setup_div:
-    xor ax, ax
-    xor dx, dx
-    mov ax, cx
-    ret
-
-;; Put the integer in cx and we use all the 4 registers
-;; Must store in si the top of the stack
-int_to_char:
-    call setup_div
-    ;; Store the return value
-    pop cx
-    mov bx, 10
-    convert_int_to_char:
-        div bx
-        add dx, '0'
-        push dx
-        je end_convert_int_to_char
-        jmp convert_int_to_char
-    end_convert_int_to_char:
-        ret
-
 print_score:
-    mov cx, word [points]
-    mov bp, sp
-    call int_to_char
+    mov ax, [points]
+    push 12 ;pra saber quando parar de dar pop
+    mov cl, 10 ; setar 10 como divisor
 
-    mov bh, 0
-    mov bh, 0
-    mov dl, 0
+    push_stack:
+    div cl ; al = quociente ah = resto
+    add ah, 48 ; transforma em caracter
+    push ax ; manda pra pilha
+    xor ah,ah ; limpa ah
+    cmp al, 0 ; se for zero, cabou
+    je pop_stack
+    jmp push_stack
+;
+    pop_stack:
+    pop ax
+    cmp ax, 12
+    je flag_volta
+	mov al, ah
+    mov al,0eh
+    mov cx, 1
+    mov bh, 0   ; seta a pagina
     int 10h
-    loop_to_print:
-        cmp bp, sp
-        je end_loop_to_print
-        pop ax
-        mov ah, 0
-        int 10h
-        jmp loop_to_print
-    end_loop_to_print:
-    ret
+    cmp bl, 2
+    jmp pop_stack
 
-; print_score:
-;     mov ax, word [points]
+
+teclado:        ; funcao para ler o input do teclado na pilha
+    push dx     ; salva o que tem em dh e dl
+
+    mov ah, 02h ; escolhe a funcao de ler o tempo do sistema
+    int 1aH     ; interrupcao que lida com o tempo do sistema
+
+    cmp dh, 30
+    jge score
     
-;     mov bx, 10
-;     push '*'
+    pop dx      ; retira da pilha os 2 bytes e salva-os em dx
 
-;     loop_print_score:
-;         mov dx, 0
-;         div bx
-;         add dx, '0'
-;         push dx
-
-;         cmp ax, 0
-;         je end_loop_print_score
-;         jmp loop_print_score
-;     end_loop_print_score:
-
-;     mov ah, 1
-;     mov al, 0
-;     mov bh, 0
-;     mov bl, 60
-;     int 16h
-
-;     loop_print_chars:
-;         pop ax
-;         cmp ax, '*'
-;         je end_loop_print_chars
-;         mov ah, 0
-;         int 16h
-;         jmp loop_print_chars
-;     end_loop_print_chars:
-
-;     jmp flag_volta
-
-
-teclado:        ; funcao para ler o input do teclado
     lodsb   ; carregando o que tá sendo apontado em si para al
     cmp al, 0
     je score
@@ -139,34 +98,40 @@ teclado:        ; funcao para ler o input do teclado
     jne caracter_vermelho
     
 seta_cursor:
-    cmp dl, 80
-    je .controle_direita
+    cmp dl, 70
+    je controle_direita
+    retorno_c_d:
     mov ah, 02h ; setar o cursor
     mov bh, 0   ; pagina
     inc dl
     int 10h
-    ret
+    cmp bl, 2
+    je aqui_vd
+    jmp aqui_vm
 
-    .controle_direita:
+    controle_direita:
     mov ah, 02h ; setar o cursor
     mov bh, 0   ; pagina
     mov dl, 20
     inc dh
     int 10h
-    ret
+    jmp retorno_c_d
+
 
 printa_char:
     mov cx, 1
     mov ah, 09h ; codigo para printar caractere apenas onde esta o cursor
     mov bh, 0   ; seta a pagina
     int 10h
-    ret
+    cmp bl, 2
+    je  retorno_pChar
+    jmp retorno_pChar2
 
 backspace:
     cmp dl, 20
-    je .controle_esquerda
+    je controle_esquerda
 
-    .printa_espaco:
+    printa_espaco:
         mov al, ' '
         mov cx, 1
         mov ah, 09h ; codigo para printar caractere apenas onde esta o cursor
@@ -184,7 +149,7 @@ backspace:
         
         jmp teclado
 
-    .controle_esquerda:
+    controle_esquerda:
         cmp dh, 5
         je teclado
 
@@ -205,16 +170,24 @@ backspace:
 
         jmp teclado
 
-    caracter_verde:
-        mov bl, 2  ; seta a cor do caractere, nesse caso, branco
-        call seta_cursor
-        call printa_char
+     caracter_verde:
+        mov bl, 2  ; seta a cor do caractere, nesse caso, verde
+        jmp seta_cursor
+        aqui_vd:
+        jmp printa_char
+        retorno_pChar:
+        inc word [points]
         jmp teclado
 
     caracter_vermelho:
-        mov bl, 4  ; seta a cor do caractere, nesse caso, branco
-        call seta_cursor
-        call printa_char
+        mov bl, 4  ; seta a cor do caractere, nesse caso, vermelho
+        jmp seta_cursor
+        aqui_vm:
+        jmp printa_char
+        retorno_pChar2:
+        cmp word [points], 0
+        je teclado
+        dec word [points]
         jmp teclado
 
 ;fim das funçoes do jogo
@@ -301,21 +274,25 @@ Menu:
 ;Arthur       
 play:
 
-    ;Carregando o video para limpar a tela
-    mov ah, 0
-    mov al,12h
+    mov ah, 03h ; escolhe a funcao de ler o tempo do sistema
+    mov ch, 0   ; horas
+    mov cl, 0   ; minutos
+    mov dh, 0   ; segundos
+    mov dl, 1   ; seta o modo entre dia e noite do relogio do sistema(1 para dia)
+    int 1aH     ; interrupcao que lida com o tempo do sistema
+    
+    xor ax, ax
+    mov ds, ax
+    mov es, ax
+
+    mov ah, 0   ; escolhe o modo do video
+    mov al, 12h ; modo VGA
+    int 10h     ; interrupcao de tela
+
+    mov ah, 0bh  ; chamada para mudar a cor do background
+    mov bh, 0    ; seta a pagina do video, nesse caso como so existe uma, eh 0
+    mov bl, 1    ; cor designada ao background
     int 10h
-
-    ;Mudando a cor do background para azul escuro
-    mov ah, 0bh
-    mov bh, 0
-    mov bl, 1
-    int 10h 
-
-    mov ah, 0bh ; chamada pra limpar a tela 
-    mov bh, 0
-    mov bl, 1
-    int 10h 
     
     mov ah, 02h ; setar o cursor
     mov bh, 0   ; pagina

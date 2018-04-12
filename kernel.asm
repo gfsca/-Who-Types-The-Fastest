@@ -21,15 +21,51 @@ creditos3 db 'Gabriel Toscano <gtbo>', 0
 creditos4 db 'Press Esc to return', 0
 
 ;parte do jogo
-teste db 'o rato roeu a roupa do rei de roma. Fonseca eh uma otima pessoa e toscano eh um coco no fort', 0
+texto1 db 'Seu sorriso eh tao resplandecente Que deixou meu coracao alegre Me de a mao pra fugir desta terrivel escuridao Desde o dia em que eu te reencontrei Me lembrei daquele lindo lugar Que na minha infancia era especial pra mim.', 0
 points dw 0
 
 ;score
-score1 db 'Your score is ', 0
-score2 db 'WOW, you really are fast', 0
-score3 db 'You are as fast as a slug, try again!', 0
+score1 db '  Your score  ', 0
+score3 db 'WOW, you really are fast', 0
+score2 db 'You are as fast as a slug, try again!', 0
+score4 db 'You are an average speed typer. I think you can do it better', 0
+score5 db 'WHAT?! How can you type that fast? Its like, humanly impossible', 0
+score6 db 'Press Esc to return', 0
 
 ;funções do jogo
+
+controle_direita_text:
+    mov ah, 02h ; setar o cursor
+    mov bh, 0   ; pagina
+    mov dl, 20
+    inc dh
+    int 10h
+    jmp ret_crt_dir
+
+seta_cursor_text:
+    cmp dl, 69
+    je controle_direita_text
+    ret_crt_dir:
+    mov ah, 02h ; setar o cursor
+    mov bh, 0   ; pagina
+    inc dl
+    int 10h
+    jmp ret_seta_cursor_text
+
+
+print_texto:
+    lodsb
+    cmp al, 0
+    je end_text
+    mov ah, 0xe
+    mov bh, 0
+    mov bl, 0xf
+    int 10h
+    jmp seta_cursor_text
+    ret_seta_cursor_text:
+    jmp print_texto
+    end_text:
+        ret
 
 printString:
     lodsb
@@ -43,7 +79,7 @@ printString:
     ret
 
 print_score:
-    mov ax, [points]
+    mov ax, word [points]
     push 12 ;pra saber quando parar de dar pop
     mov cl, 10 ; setar 10 como divisor
 
@@ -55,16 +91,27 @@ print_score:
     cmp al, 0 ; se for zero, cabou
     je pop_stack
     jmp push_stack
-;
+
+    mov ah, 02h ; setar o cursor
+    mov bh, 0   ; pagina
+    mov dl, 20
+    mov dh, 20
+    int 10h
+
     pop_stack:
     pop ax
     cmp ax, 12
     je flag_volta
 	mov al, ah
-    mov al,0eh
+
     mov cx, 1
     mov bh, 0   ; seta a pagina
     int 10h
+    mov ah, 02h ; setar o cursor
+    mov bh, 0   ; pagina
+    inc dh
+    int 10h
+
     cmp bl, 2
     jmp pop_stack
 
@@ -98,7 +145,7 @@ teclado:        ; funcao para ler o input do teclado na pilha
     jne caracter_vermelho
     
 seta_cursor:
-    cmp dl, 70
+    cmp dl, 69
     je controle_direita
     retorno_c_d:
     mov ah, 02h ; setar o cursor
@@ -145,7 +192,7 @@ backspace:
         int 10h
 
         dec si
-        dec si 
+        dec si
         
         jmp teclado
 
@@ -273,6 +320,8 @@ Menu:
         jne selecao
 ;Arthur       
 play:
+    mov si, points
+    mov [si], byte 0
 
     mov ah, 03h ; escolhe a funcao de ler o tempo do sistema
     mov ch, 0   ; horas
@@ -300,8 +349,8 @@ play:
     mov dl, 20  ; valor x
     int 10h
 
-    mov si, teste
-    call printString
+    mov si, texto1
+    call print_texto
 
 
     mov ah, 02h ; setar o cursor
@@ -310,7 +359,7 @@ play:
     mov dl, 19  ; valor x
     int 10h
 
-    mov si, teste
+    mov si, texto1
 
         
     jmp teclado
@@ -485,11 +534,36 @@ score:
 
     call print_score
 
-
     flag_volta:
-        cmp word [points], 100
+        cmp word [points], 80
         jle arthur
-        jg fonseca
+        cmp word [points], 120
+        jle average_score
+        cmp word [points], 150
+        jle fonseca
+        jg ninja_typer
+
+ninja_typer:
+    ;Colocando o score
+    mov ah, 02h  ;Setando o cursor
+    mov bh, 0    ;Pagina 0
+    mov dh, 12    ;Linha
+    mov dl, 15   ;Coluna
+    int 10h
+    mov si, score5
+    call printString
+jmp ESCscore
+
+average_score:
+    ;Colocando o score
+    mov ah, 02h  ;Setando o cursor
+    mov bh, 0    ;Pagina 0
+    mov dh, 12    ;Linha
+    mov dl, 15   ;Coluna
+    int 10h
+    mov si, score4
+    call printString
+jmp ESCscore
 
 
 
@@ -515,6 +589,15 @@ fonseca:
     call printString
 
 ESCscore:    
+    ;Colocando a string score6
+    mov ah, 02h  ;Setando o cursor
+	mov bh, 0    ;Pagina 0
+	mov dh, 20   ;Linha
+	mov dl, 10   ;Coluna
+	int 10h
+    mov si, score6
+    call printString
+
     ;Para receber o caractere
     mov ah, 0
     int 16h
